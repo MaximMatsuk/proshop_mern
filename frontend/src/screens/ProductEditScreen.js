@@ -33,6 +33,9 @@ const ProductEditScreen = ({ match, history }) => {
     success: successUpdate,
   } = productUpdate
 
+  const userLogin = useSelector((state) => state.userLogin)
+  const { userInfo } = userLogin
+
   useEffect(() => {
     if (successUpdate) {
       dispatch({ type: PRODUCT_UPDATE_RESET })
@@ -62,6 +65,7 @@ const ProductEditScreen = ({ match, history }) => {
       const config = {
         headers: {
           'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${userInfo.token}`,
         },
       }
 
