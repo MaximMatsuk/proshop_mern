@@ -5,3 +5,5 @@ Rules diff:
 
 запустил локально через docker mongo + npm run dev
 обновил readme
+
+добавил mermaid диаграму
