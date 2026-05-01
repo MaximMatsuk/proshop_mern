@@ -13,7 +13,7 @@
 
 | # | Где | Что не так | Уровень | Как исправить |
 |---|-----|------------|---------|----------------|
-| 1 | `backend/server.js` (монтирование `/api/upload`) + `backend/routes/uploadRoutes.js` | Эндпоинт загрузки файлов **не защищён** middleware `protect, admin`, не ограничен `limits.fileSize`, а `checkFileType` доверяет `mimetype` и расширению (оба подконтрольны клиенту). Любой анонимный клиент может заливать произвольные файлы в `/uploads`, который раздаётся статикой → DoS по диску + потенциальный stored-XSS через svg/html, замаскированный под jpg. | 🔴 critical | Поставить `protect, admin` перед `upload.single('image')`, добавить `multer({ limits: { fileSize: 2_000_000 } })` и проверять magic bytes (`file-type`), а не mimetype. |
+| 1 | ~~`backend/server.js` (монтирование `/api/upload`) + `backend/routes/uploadRoutes.js`~~ | ~~Эндпоинт загрузки файлов **не защищён** middleware `protect, admin`, не ограничен `limits.fileSize`, а `checkFileType` доверяет `mimetype` и расширению (оба подконтрольны клиенту). Любой анонимный клиент может заливать произвольные файлы в `/uploads`, который раздаётся статикой → DoS по диску + потенциальный stored-XSS через svg/html, замаскированный под jpg.~~ | ✅ **FIXED** (commit `ad349dd`) | ~~Поставить `protect, admin` перед `upload.single('image')`, добавить `multer({ limits: { fileSize: 2_000_000 } })` и проверять magic bytes (`file-type`), а не mimetype.~~ |
 | 2 | `backend/controllers/orderController.js:updateOrderToPaid` | Маршрут `/api/orders/:id/pay` использует только `protect` — **нет проверки владельца** (`order.user === req.user._id`), любой залогиненный юзер помечает чужой заказ оплаченным (IDOR). Дополнительно `req.body.payer.email_address` упадёт, если `payer` отсутствует, и нет идемпотентности — повторный вызов перезаписывает `paidAt`. | 🔴 critical | Добавить проверку `order.user.equals(req.user._id)` (или admin), guard `if (order.isPaid) throw …`, и опциональный chaining/валидацию `payer`. |
 | 3 | Корневой `package.json` + `frontend/package.json` (весь стек) | Зависимости очень устарели и часть имеет публичные CVE: `mongoose ^5.10` (EOL, `.remove()` уже зовётся в `deleteProduct`/`deleteUser` — сломается на v7+), `jsonwebtoken ^8.5` (CVE-2022-23529 — algorithm confusion), `axios ^0.20` (SSRF/prototype-pollution), `bcryptjs ^2.4.3` (2016), `react ^16.13` + `react-scripts 3.4.3`, `react-router-dom ^5`, `react-paypal-button-v2` — пакет архивирован автором. | 🔴 critical | Спланировать поэтапный апгрейд: jsonwebtoken→9, axios→1.x, mongoose→8 (с заменой `.remove()` на `.deleteOne()`), отдельной вехой — react/CRA→Vite+React 18, router→v6, PayPal→`@paypal/react-paypal-js`. |
 | 4 | `backend/controllers/productController.js:getProducts` | `req.query.keyword` пробрасывается прямо в `$regex` без экранирования → regex-injection и ReDoS на специально сформированной строке (`(a+)+$` и т.п.). | 🟡 medium | Экранировать ввод (`escape-string-regexp`) или анкорить `^…` + ограничить длину keyword до ~64 символов. |
@@ -76,11 +76,11 @@
 | Hardcoded | — | 1 (топ-5) | 5 |
 | Dead code | — | — | 4 |
 
-Критических, требующих фикса до прод-релиза: **3** (см. топ-5 №1–3). Остальное — нормальный технический долг.
+Критических, требующих фикса до прод-релиза: **2** (см. топ-5 №2–3; №1 закрыт коммитом `ad349dd`). Остальное — нормальный технический долг.
 
 ## Рекомендуемая последовательность работ
 
-1. Закрыть IDOR в `updateOrderToPaid` и навесить auth на `/api/upload` — это два «коротких» PR с большим эффектом на безопасность.
+1. Закрыть IDOR в `updateOrderToPaid`. ~~Навесить auth на `/api/upload`~~ — сделано в `ad349dd`.
 2. Перевести расчёт `totalPrice` на сервер (фронт перестаёт быть source of truth).
 3. Bump security-критичных зависимостей: `jsonwebtoken`, `axios`, `mongoose` (с заменой `.remove()`).
 4. Отдельной вехой — миграция фронта (CRA→Vite, React 16→18, router v5→v6, классический Redux→RTK или переход на `proshop-v2`).
