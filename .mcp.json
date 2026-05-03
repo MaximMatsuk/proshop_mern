@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "feature-flags": {
+      "command": "mcp-server-demo/node_modules/.bin/tsx",
+      "args": ["mcp-server-demo/src/index.ts"]
+    }
+  }
+}
