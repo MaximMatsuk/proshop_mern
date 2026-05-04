@@ -23,7 +23,7 @@ Out of scope: embeddings, Qdrant ingest, incremental re-chunking, deletion of st
 | runbooks | 6 | `runbooks/*.md` |
 | api | 5 | `api/*.md` |
 | adrs | 5 | `adrs/*.md` |
-| pages | 14 | `pages/*.md` (incl. `INDEX.md`) |
+| pages | 16 | `pages/*.md` (incl. `INDEX.md`) |
 | incidents | 3 | `incidents/*.md` |
 
 ## 3. Outputs
@@ -117,7 +117,7 @@ Each line of `chunks.jsonl`:
 
 | Field | Rule |
 |---|---|
-| `id` | `<file-slug>__<heading-path-slug>__<chunk_index>`. Slug: lowercase, `[^a-z0-9]+ → -`, trim. Globally unique across the corpus (validator enforces). |
+| `id` | `<file-slug>__<heading-path-slug>__<chunk_index>`. Slug: lowercase, `[^a-z0-9]+ → -`, trim leading/trailing `-`. Hyphens are allowed inside any segment (filenames may contain dashes, e.g. `adr-001-mongodb-vs-postgres`). Globally unique across the corpus (validator enforces). |
 | `text` | Breadcrumb prefix (§5.8) + body. No trailing whitespace. |
 | `metadata.source_file` | Basename, e.g. `architecture.md`. |
 | `metadata.file_path` | Path relative to `proshop_mern/`, e.g. `project-data/features/cart.md`. |
@@ -180,13 +180,13 @@ DO NOT:
 
 ## 8. Main Agent: Validation, Merge, Report
 
-After all 7 subagents return, the main agent runs `npm run chunks:finalize` (script: `mcp-server-demo/scripts/finalize-chunks.ts`).
+After all 7 subagents return, the main agent runs `cd scripts && npm run finalize` (script: `proshop_mern/scripts/finalize-chunks.ts`). The `scripts/` directory has its own `package.json` with local `zod` and `tsx` deps.
 
 **Step 1 — collect:** read all 7 group fragments. Missing or empty file → hard fail with explicit message.
 
 **Step 2 — validate** every line via zod:
 - parses as JSON, all required fields present and well-typed;
-- `id` matches `^[a-z0-9]+(__[a-z0-9-]+)*__\d+$`;
+- `id` matches `^[a-z0-9-]+(__[a-z0-9-]+)*__\d+$`;
 - `id` globally unique (Set check);
 - `language ∈ {ru, en, mixed}`;
 - `1 ≤ keywords.length ≤ 10`;
@@ -217,12 +217,13 @@ group order `toplevel → features → runbooks → api → adrs → pages → i
 New files / changes (kept minimal):
 
 ```
-mcp-server-demo/scripts/finalize-chunks.ts     ← validator + merger + report (zod)
-mcp-server-demo/package.json                    ← +script "chunks:finalize"
-proshop_mern/.gitignore                         ← +line "data/"
+proshop_mern/scripts/finalize-chunks.ts        ← validator + merger + report (zod)
+proshop_mern/scripts/normalize-chunks.ts       ← derived-fields fixup pass (run before finalize if needed)
+proshop_mern/scripts/package.json              ← own deps (zod, tsx) + scripts: finalize, normalize
+proshop_mern/.gitignore                        ← +lines "data/", "qdrant_storage/"
 ```
 
-`zod` is already in `mcp-server-demo` deps (used by MCP SDK). No new deps if confirmed; otherwise `npm i zod`.
+`scripts/` is at the proshop_mern root (alongside `project-data/`, `data/`, `qdrant_storage/`) because the chunking pipeline operates at the corpus level, not inside the MCP server. Run via `cd scripts && npm install && npm run finalize`.
 
 ## 10. Risks & Edge Cases
 
