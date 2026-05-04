@@ -1,4 +1,5 @@
 import { QdrantClient } from '@qdrant/js-client-rest';
+import { pathToFileURL } from 'node:url';
 
 const QDRANT_URL = process.env.QDRANT_URL ?? 'http://localhost:6333';
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY;
@@ -263,7 +264,12 @@ async function cli(): Promise<void> {
   printResults(filter, args.topK, result);
 }
 
-cli().catch((e) => {
-  console.error(`\n[query] FATAL: ${(e as Error).message}\n`);
-  process.exit(1);
-});
+const isMain =
+  !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMain) {
+  cli().catch((e) => {
+    console.error(`\n[query] FATAL: ${(e as Error).message}\n`);
+    process.exit(1);
+  });
+}
