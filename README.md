@@ -169,6 +169,35 @@ npm run build
 
 A Heroku `postbuild` script is included, so a manual frontend build is not required for Heroku deployments.
 
+## Documentation corpus & MCP servers
+
+The repository ships with a project-knowledge corpus and two MCP servers that let an AI agent (Claude Code, Cursor, etc.) introspect the project without re-reading the source tree on every question.
+
+### `project-data/` — source documentation
+
+Markdown sources for the corpus, organised by group: `adrs/`, `runbooks/`, `incidents/`, `api/`, `pages/`, `features/`, plus top-level docs (`architecture.md`, `glossary.md`, `best-practices.md`, `dev-history.md`, `feature-flags-spec.md`, `features-analysis-ru.md`).
+
+### `data/` — chunked corpus for RAG
+
+Pre-built chunk files produced by the chunking pipeline in `scripts/`:
+
+```
+data/chunks.jsonl                  # combined corpus
+data/chunks.<group>.jsonl          # per-group: adrs, api, features, incidents, pages, runbooks, toplevel
+data/report.md                     # ingest report
+```
+
+Each line is a JSON chunk with text plus metadata (`source_file`, `file_path`, `title`, `parent_headings`, `heading_path`, `group`, `language`, `summary`). Chunks are embedded with `bge-m3` via Ollama and indexed in Qdrant (collection `proshop_docs`). Pipeline scripts live in `scripts/`: `normalize-chunks.ts` → `finalize-chunks.ts` → `ingest-qdrant.ts`. Manual queries: `tsx scripts/query-qdrant.ts "<query>"`.
+
+### MCP servers (`.mcp.json`)
+
+| Server | Path | Tools |
+|---|---|---|
+| `project-docs` | `mcp-server-rag/` | `search_project_docs(query, top_k=5, rewrite=false)` — semantic search over the indexed `data/` chunks |
+| `feature-flags` | `mcp-server-demo/` | `get_feature_info`, `set_feature_state`, `adjust_traffic_rollout` over `mcp-server-demo/src/features.json` |
+
+Both servers run via the package-local `tsx` (no separate build step). Requirements for `project-docs`: a running Qdrant on `http://localhost:6333` and Ollama on `http://localhost:11434` with the `bge-m3` (embeddings) and optionally `qwen2.5:1.5b` (RU→EN rewrite) models pulled. Design notes: `docs/superpowers/specs/2026-05-04-mcp-server-rag-design.md`.
+
 ## License
 
 The MIT License

@@ -92,3 +92,26 @@ jane@example.com  / 123456 (Customer)
 - **Не складывайте посторонние ассеты в `/uploads`** — папка отдаётся статикой и предназначена только для пользовательских загрузок (jpg/jpeg/png через multer).
 - **Не забывайте про `localStorage`-гидратацию** при добавлении Redux-состояния, которое должно переживать перезагрузку.
 - **Не добавляйте middleware `admin` без `protect`** перед ним — `admin` читает `req.user`, который выставляется только в `protect`.
+
+## Поиск по документации продукта proshop_mern (project-docs MCP)
+
+В проекте подключён MCP-сервер `project-docs` (см. `.mcp.json`), который экспонирует один тул `search_project_docs(query, top_k=5, rewrite=false)` — векторный поиск по корпусу `project-data/` через Qdrant + Ollama. Возвращает чанки с метаданными: `source_file`, `file_path`, `title`, `parent_headings`, `score`, `snippet`.
+
+- При любых вопросах про функционал, фичи, архитектуру, ADR, runbooks, incidents, API-доки и страницы UI — **СНАЧАЛА** вызывай `search_project_docs`. Это быстрее и возвращает релевантные чанки с метаданными.
+- Параметры: `query` — естественный язык (RU или EN); `top_k` — целое 1..20, по умолчанию 5; `rewrite=true` включает RU→EN-перевод запроса через Ollama (когда дефолтный поиск по кириллице промахивается).
+- **ТОЛЬКО** если vector search не дал нужных результатов **или** нужно полное содержимое исходного файла из метаданных найденного чанка → fallback на `Read`/`grep` по `file_path`/`source_file` из ответа.
+- **НЕ начинай** с `grep`+`Read` по `project-data/` или по корпусу — это медленно и дорого по токенам.
+
+## Управление feature flags (feature-flags MCP)
+
+В проекте подключён MCP-сервер `feature-flags` (см. `.mcp.json`), который работает поверх `mcp-server-demo/src/features.json`. Тулы:
+
+- `get_feature_info(feature_name)` — статус фичи, `traffic_percentage`, `last_modified` и состояние зависимостей.
+- `set_feature_state(feature_name, state)` — перевод в `Disabled` / `Testing` / `Enabled` с автоматическим пересчётом `traffic_percentage`.
+- `adjust_traffic_rollout(feature_name, percentage)` — точечная подстройка процента трафика без смены статуса.
+
+Правила:
+
+- Когда пользователь спрашивает статус фичи («какой статус у `gift_message`?», «включена ли `search_v2`?») — вызывай `get_feature_info`, **не** читай `mcp-server-demo/src/features.json` напрямую.
+- Когда пользователь хочет изменить статус («включи фичу X», «переведи Y в Testing», «поставь трафик 25%») — вызывай соответствующие тулы (`set_feature_state` / `adjust_traffic_rollout`). **Никогда** не редактируй `mcp-server-demo/src/features.json` вручную через `Edit`/`Write`.
+- Когда пользователь просит **список всех фич** — отдельного `list_features` тула в текущем сервере **нет**. Допустимый fallback — однократный `Read` файла `mcp-server-demo/src/features.json`. При желании этот тул можно добавить в `mcp-server-demo/src/index.ts`.
