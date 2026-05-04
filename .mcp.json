@@ -3,6 +3,10 @@
     "feature-flags": {
       "command": "mcp-server-demo/node_modules/.bin/tsx",
       "args": ["mcp-server-demo/src/index.ts"]
+    },
+    "project-docs": {
+      "command": "mcp-server-rag/node_modules/.bin/tsx",
+      "args": ["mcp-server-rag/src/index.ts"]
     }
   }
 }
