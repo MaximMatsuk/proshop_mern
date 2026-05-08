@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "watch": "tsx watch src/index.ts",
-    "build": "tsc && cp src/features.json dist/features.json",
+    "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"

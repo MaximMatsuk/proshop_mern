@@ -21,7 +21,7 @@ interface Feature {
 type FeaturesFile = Record<string, Feature>;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const FEATURES_PATH = join(__dirname, "features.json");
+const FEATURES_PATH = join(__dirname, "../../config/features.json");
 
 async function readFeatures(): Promise<FeaturesFile> {
   const raw = await readFile(FEATURES_PATH, "utf-8");

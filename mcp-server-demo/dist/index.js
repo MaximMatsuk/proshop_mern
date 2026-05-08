@@ -5,7 +5,7 @@ import { readFile, writeFile, rename } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const FEATURES_PATH = join(__dirname, "features.json");
+const FEATURES_PATH = join(__dirname, "../../config/features.json");
 async function readFeatures() {
     const raw = await readFile(FEATURES_PATH, "utf-8");
     return JSON.parse(raw);

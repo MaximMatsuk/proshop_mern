@@ -104,7 +104,7 @@ jane@example.com  / 123456 (Customer)
 
 ## Управление feature flags (feature-flags MCP)
 
-В проекте подключён MCP-сервер `feature-flags` (см. `.mcp.json`), который работает поверх `mcp-server-demo/src/features.json`. Тулы:
+В проекте подключён MCP-сервер `feature-flags` (см. `.mcp.json`), который работает поверх `config/features.json`. Тулы:
 
 - `get_feature_info(feature_name)` — статус фичи, `traffic_percentage`, `last_modified` и состояние зависимостей.
 - `set_feature_state(feature_name, state)` — перевод в `Disabled` / `Testing` / `Enabled` с автоматическим пересчётом `traffic_percentage`.
@@ -112,6 +112,6 @@ jane@example.com  / 123456 (Customer)
 
 Правила:
 
-- Когда пользователь спрашивает статус фичи («какой статус у `gift_message`?», «включена ли `search_v2`?») — вызывай `get_feature_info`, **не** читай `mcp-server-demo/src/features.json` напрямую.
-- Когда пользователь хочет изменить статус («включи фичу X», «переведи Y в Testing», «поставь трафик 25%») — вызывай соответствующие тулы (`set_feature_state` / `adjust_traffic_rollout`). **Никогда** не редактируй `mcp-server-demo/src/features.json` вручную через `Edit`/`Write`.
-- Когда пользователь просит **список всех фич** — отдельного `list_features` тула в текущем сервере **нет**. Допустимый fallback — однократный `Read` файла `mcp-server-demo/src/features.json`. При желании этот тул можно добавить в `mcp-server-demo/src/index.ts`.
+- Когда пользователь спрашивает статус фичи («какой статус у `gift_message`?», «включена ли `search_v2`?») — вызывай `get_feature_info`, **не** читай `config/features.json` напрямую.
+- Когда пользователь хочет изменить статус («включи фичу X», «переведи Y в Testing», «поставь трафик 25%») — вызывай соответствующие тулы (`set_feature_state` / `adjust_traffic_rollout`). **Никогда** не редактируй `config/features.json` вручную через `Edit`/`Write`.
+- Когда пользователь просит **список всех фич** — отдельного `list_features` тула в текущем сервере **нет**. Допустимый fallback — однократный `Read` файла `config/features.json`. При желании этот тул можно добавить в `mcp-server-demo/src/index.ts`.
