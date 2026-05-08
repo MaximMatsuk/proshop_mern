@@ -1,16 +1,28 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { Row, Col, Image, ListGroup, Card, Button, Form } from 'react-bootstrap'
+import {
+  Row,
+  Col,
+  Image,
+  ListGroup,
+  Card,
+  Button,
+  Form,
+  Badge,
+} from 'react-bootstrap'
 import Rating from '../components/Rating'
 import Message from '../components/Message'
 import Loader from '../components/Loader'
 import Meta from '../components/Meta'
+import RecentlyViewed from '../components/RecentlyViewed'
 import {
   listProductDetails,
   createProductReview,
 } from '../actions/productActions'
 import { PRODUCT_CREATE_REVIEW_RESET } from '../constants/productConstants'
+import { useFeatureFlag } from '../hooks/useFeatureFlag'
+import { useRecentlyViewed } from '../hooks/useRecentlyViewed'
 
 const ProductScreen = ({ history, match }) => {
   const [qty, setQty] = useState(1)
@@ -32,6 +44,10 @@ const ProductScreen = ({ history, match }) => {
     error: errorProductReview,
   } = productReviewCreate
 
+  const recentlyViewedEnabled = useFeatureFlag('recently_viewed')
+  const verifiedBadgeEnabled = useFeatureFlag('verified_purchase_badge')
+  const { trackView } = useRecentlyViewed()
+
   useEffect(() => {
     if (successProductReview) {
       setRating(0)
@@ -42,6 +58,13 @@ const ProductScreen = ({ history, match }) => {
       dispatch({ type: PRODUCT_CREATE_REVIEW_RESET })
     }
   }, [dispatch, match, successProductReview])
+
+  useEffect(() => {
+    if (recentlyViewedEnabled && product && product._id === match.params.id) {
+      trackView(product)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recentlyViewedEnabled, product._id, match.params.id])
 
   const addToCartHandler = () => {
     history.push(`/cart/${match.params.id}?qty=${qty}`)
@@ -156,6 +179,11 @@ const ProductScreen = ({ history, match }) => {
                 {product.reviews.map((review) => (
                   <ListGroup.Item key={review._id}>
                     <strong>{review.name}</strong>
+                    {verifiedBadgeEnabled && review.verified && (
+                      <Badge variant='success' className='ml-2'>
+                        Verified Purchase
+                      </Badge>
+                    )}
                     <Rating value={review.rating} />
                     <p>{review.createdAt.substring(0, 10)}</p>
                     <p>{review.comment}</p>
@@ -215,6 +243,7 @@ const ProductScreen = ({ history, match }) => {
               </ListGroup>
             </Col>
           </Row>
+          <RecentlyViewed excludeId={product._id} />
         </>
       )}
     </>

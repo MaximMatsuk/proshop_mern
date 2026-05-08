@@ -225,7 +225,7 @@ export const listMyOrders = () => async (dispatch, getState) => {
   }
 }
 
-export const listOrders = () => async (dispatch, getState) => {
+export const listOrders = (filters = {}) => async (dispatch, getState) => {
   try {
     dispatch({
       type: ORDER_LIST_REQUEST,
@@ -241,7 +241,14 @@ export const listOrders = () => async (dispatch, getState) => {
       },
     }
 
-    const { data } = await axios.get(`/api/orders`, config)
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== '' && v !== undefined && v !== null) params.set(k, v)
+    })
+    const qs = params.toString()
+    const url = qs ? `/api/orders?${qs}` : `/api/orders`
+
+    const { data } = await axios.get(url, config)
 
     dispatch({
       type: ORDER_LIST_SUCCESS,

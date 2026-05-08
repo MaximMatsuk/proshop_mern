@@ -24,15 +24,22 @@ import {
 } from '../constants/productConstants'
 import { logout } from './userActions'
 
-export const listProducts = (keyword = '', pageNumber = '') => async (
-  dispatch
-) => {
+export const listProducts = (
+  keyword = '',
+  pageNumber = '',
+  filters = {}
+) => async (dispatch) => {
   try {
     dispatch({ type: PRODUCT_LIST_REQUEST })
 
-    const { data } = await axios.get(
-      `/api/products?keyword=${keyword}&pageNumber=${pageNumber}`
-    )
+    const params = new URLSearchParams()
+    if (keyword) params.set('keyword', keyword)
+    if (pageNumber) params.set('pageNumber', pageNumber)
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== '' && v !== undefined && v !== null) params.set(k, v)
+    })
+
+    const { data } = await axios.get(`/api/products?${params.toString()}`)
 
     dispatch({
       type: PRODUCT_LIST_SUCCESS,

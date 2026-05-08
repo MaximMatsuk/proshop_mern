@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { LinkContainer } from 'react-router-bootstrap'
-import { Table, Button, Row, Col } from 'react-bootstrap'
+import { Table, Button, Row, Col, Form, Card } from 'react-bootstrap'
 import { useDispatch, useSelector } from 'react-redux'
 import Message from '../components/Message'
 import Loader from '../components/Loader'
@@ -11,11 +11,21 @@ import {
   createProduct,
 } from '../actions/productActions'
 import { PRODUCT_CREATE_RESET } from '../constants/productConstants'
+import { useFeatureFlag } from '../hooks/useFeatureFlag'
 
 const ProductListScreen = ({ history, match }) => {
   const pageNumber = match.params.pageNumber || 1
 
   const dispatch = useDispatch()
+  const advancedFilters = useFeatureFlag('admin_advanced_filters')
+  const [filters, setFilters] = useState({
+    priceMin: '',
+    priceMax: '',
+    stockMin: '',
+    stockMax: '',
+    category: '',
+    brand: '',
+  })
 
   const productList = useSelector((state) => state.productList)
   const { loading, error, products, page, pages } = productList
@@ -48,8 +58,10 @@ const ProductListScreen = ({ history, match }) => {
     if (successCreate) {
       history.push(`/admin/product/${createdProduct._id}/edit`)
     } else {
-      dispatch(listProducts('', pageNumber))
+      dispatch(listProducts('', pageNumber, advancedFilters ? filters : {}))
     }
+    // filters intentionally not in deps — re-fetch is triggered explicitly via Apply
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     dispatch,
     history,
@@ -59,6 +71,27 @@ const ProductListScreen = ({ history, match }) => {
     createdProduct,
     pageNumber,
   ])
+
+  const applyFilters = (e) => {
+    e.preventDefault()
+    dispatch(listProducts('', pageNumber, filters))
+  }
+
+  const resetFilters = () => {
+    const empty = {
+      priceMin: '',
+      priceMax: '',
+      stockMin: '',
+      stockMax: '',
+      category: '',
+      brand: '',
+    }
+    setFilters(empty)
+    dispatch(listProducts('', pageNumber, {}))
+  }
+
+  const onFilterChange = (k) => (e) =>
+    setFilters((prev) => ({ ...prev, [k]: e.target.value }))
 
   const deleteHandler = (id) => {
     if (window.confirm('Are you sure')) {
@@ -86,6 +119,80 @@ const ProductListScreen = ({ history, match }) => {
       {errorDelete && <Message variant='danger'>{errorDelete}</Message>}
       {loadingCreate && <Loader />}
       {errorCreate && <Message variant='danger'>{errorCreate}</Message>}
+      {advancedFilters && (
+        <Card className='p-3 mb-3'>
+          <Form onSubmit={applyFilters}>
+            <Row>
+              <Col md={2}>
+                <Form.Group>
+                  <Form.Label>Price min</Form.Label>
+                  <Form.Control
+                    type='number'
+                    value={filters.priceMin}
+                    onChange={onFilterChange('priceMin')}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={2}>
+                <Form.Group>
+                  <Form.Label>Price max</Form.Label>
+                  <Form.Control
+                    type='number'
+                    value={filters.priceMax}
+                    onChange={onFilterChange('priceMax')}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={2}>
+                <Form.Group>
+                  <Form.Label>Stock min</Form.Label>
+                  <Form.Control
+                    type='number'
+                    value={filters.stockMin}
+                    onChange={onFilterChange('stockMin')}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={2}>
+                <Form.Group>
+                  <Form.Label>Stock max</Form.Label>
+                  <Form.Control
+                    type='number'
+                    value={filters.stockMax}
+                    onChange={onFilterChange('stockMax')}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={2}>
+                <Form.Group>
+                  <Form.Label>Category</Form.Label>
+                  <Form.Control
+                    type='text'
+                    value={filters.category}
+                    onChange={onFilterChange('category')}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={2}>
+                <Form.Group>
+                  <Form.Label>Brand</Form.Label>
+                  <Form.Control
+                    type='text'
+                    value={filters.brand}
+                    onChange={onFilterChange('brand')}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Button type='submit' className='mr-2'>
+              Apply Filters
+            </Button>
+            <Button variant='light' onClick={resetFilters}>
+              Reset
+            </Button>
+          </Form>
+        </Card>
+      )}
       {loading ? (
         <Loader />
       ) : error ? (

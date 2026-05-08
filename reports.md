@@ -469,3 +469,50 @@ mcp__feature-flags__get_feature_info({ "feature_name": "save_for_later" })
 **Финальное состояние `save_for_later`:** без изменений — `status=Testing`, `traffic_percentage=90`, `last_modified=2026-05-03`, `dependencies=[cart_redesign:Testing]`.
 
 Если хочется привести фичу к «целевым» 25% независимо от предусловия — это `adjust_traffic_rollout(save_for_later, 25)` (статус уже `Testing`, `set_feature_state` не нужен, файл будет переписан и `last_modified` обновится на сегодня). Готов сделать по подтверждению.
+
+---
+
+## Интеграция `config/features.json` в backend + frontend (Phase 0 + Phase 1)
+
+`config/features.json` стал **single source of truth** для feature-флагов. MCP-сервер `feature-flags` пишет в файл, бэкенд и фронт его читают.
+
+### Phase 0 — инфраструктура
+
+**Backend** (`backend/utils/featureFlags.js`):
+- `loadFeatures()` читает `config/features.json` (TTL-кэш 5 секунд).
+- `isFeatureEnabled(name)` — резолвер: `status === Disabled` → `false`; рекурсивная проверка `dependencies` (если любая зависимость в `Disabled` → каскадно `false`); cycle protection. `traffic_percentage` и `targeted_segments` — стабы (читаются, прокидываются в API, но не влияют на резолюцию).
+- Public endpoint `GET /api/features` (все фичи с резолвед `enabled`) и `GET /api/features/:name` (одна, 404 если нет).
+- Fail closed: если файл недоступен — все фичи считаются off.
+
+**Frontend** (`frontend/src/`):
+- Redux slice (`constants/featureFlagsConstants.js`, `actions/featureFlagsActions.js`, `reducers/featureFlagsReducer.js`) — thunk `loadFeatureFlags()` дёргает `/api/features` на маунт `App`, сохраняет как `state.featureFlags.flags[name].enabled`.
+- Хук `useFeatureFlag('name')` возвращает boolean — единая точка чтения в компонентах.
+
+**Принцип распределения гейтинга:** backend гейтит данные/действия (источник истины + защита), frontend гейтит UI (скрытие там, где бэк не участвует). Mixed-фичи проверяются в обоих слоях (defense in depth — Redux state можно подделать в DevTools).
+
+### Phase 1 — drift fixes (4 фичи, реализованные через инфраструктуру)
+
+| Фича | Backend | Frontend | Поведение OFF |
+|---|---|---|---|
+| `image_lazy_loading` | — | `useFeatureFlag` в `Product.js`, `ProductCarousel.js` | `<img>` без `loading="lazy"` |
+| `recently_viewed` | — | `useFeatureFlag` в `RecentlyViewed.js` + `ProductScreen.js` (трекинг) | Полка не рендерится, localStorage не пишется |
+| `verified_purchase_badge` | `isFeatureEnabled` в `getProductById` (skip `Order.find` если off) | `useFeatureFlag` в `ProductScreen.js` (`<Badge>Verified Purchase</Badge>`) | Бек не делает cross-ref запрос; фронт не рисует бейдж |
+| `admin_advanced_filters` | `isFeatureEnabled` в `getProducts` + `getOrders` (skip filter params если off) | `useFeatureFlag` в `ProductListScreen` + `OrderListScreen` (фильтр-панели) | Бек игнорит query params; фронт не рендерит панель |
+
+### End-to-end цепочка
+
+```
+config/features.json
+   ↓ readFile (TTL 5s, atomic write от MCP)
+backend/utils/featureFlags.js
+   ├─→ isFeatureEnabled(name) ← contollers (productController, orderController)
+   └─→ getAllFeatures() → GET /api/features
+                              ↓ axios on App mount
+                          state.featureFlags.flags
+                              ↓
+                          useFeatureFlag(name) ← компоненты
+```
+
+**Проверка end-to-end (на Phase 0):** прямая правка `search_v2.status = "Disabled"` в `config/features.json` → через ≥5s `GET /api/features/search_v2` отдаёт `enabled: false`, и `semantic_search` (зависит от `search_v2`) тоже `enabled: false` каскадом, хотя сама в `Testing`. После восстановления — оба `true`. TTL и каскад работают.
+
+**Прогресс:** 5/20 реализуемых фич (25%). Skip — 4 (`search_v2`, `semantic_search`, `apple_pay`, `stripe_alternative`, по analysis-doc §6 — внешние зависимости). Осталось 4 фазы (Phase 2 — дешёвые backend-изменения; Phase 3 — UX редизайн + якорная `multi_step_checkout_v2`; Phase 4 — новые endpoints; Phase 5 — тяжёлые/опциональные).

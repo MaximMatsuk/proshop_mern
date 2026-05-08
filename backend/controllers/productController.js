@@ -1,5 +1,7 @@
 import asyncHandler from 'express-async-handler'
 import Product from '../models/productModel.js'
+import Order from '../models/orderModel.js'
+import { isFeatureEnabled } from '../utils/featureFlags.js'
 
 // @desc    Fetch all products
 // @route   GET /api/products
@@ -17,8 +19,26 @@ const getProducts = asyncHandler(async (req, res) => {
       }
     : {}
 
-  const count = await Product.countDocuments({ ...keyword })
-  const products = await Product.find({ ...keyword })
+  const filters = {}
+  if (await isFeatureEnabled('admin_advanced_filters')) {
+    const { priceMin, priceMax, stockMin, stockMax, category, brand } = req.query
+    if (priceMin || priceMax) {
+      filters.price = {}
+      if (priceMin) filters.price.$gte = Number(priceMin)
+      if (priceMax) filters.price.$lte = Number(priceMax)
+    }
+    if (stockMin || stockMax) {
+      filters.countInStock = {}
+      if (stockMin) filters.countInStock.$gte = Number(stockMin)
+      if (stockMax) filters.countInStock.$lte = Number(stockMax)
+    }
+    if (category) filters.category = category
+    if (brand) filters.brand = brand
+  }
+
+  const query = { ...keyword, ...filters }
+  const count = await Product.countDocuments(query)
+  const products = await Product.find(query)
     .limit(pageSize)
     .skip(pageSize * (page - 1))
 
@@ -31,12 +51,33 @@ const getProducts = asyncHandler(async (req, res) => {
 const getProductById = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id)
 
-  if (product) {
-    res.json(product)
-  } else {
+  if (!product) {
     res.status(404)
     throw new Error('Product not found')
   }
+
+  if (!(await isFeatureEnabled('verified_purchase_badge'))) {
+    return res.json(product)
+  }
+
+  // Augment each review with verified flag based on delivered orders containing this product
+  const reviewerIds = product.reviews.map((r) => r.user)
+  const verifiedOrders = await Order.find({
+    user: { $in: reviewerIds },
+    isDelivered: true,
+    'orderItems.product': product._id,
+  }).select('user')
+  const verifiedUserIds = new Set(
+    verifiedOrders.map((o) => o.user.toString())
+  )
+
+  const productObj = product.toObject()
+  productObj.reviews = productObj.reviews.map((r) => ({
+    ...r,
+    verified: verifiedUserIds.has(r.user.toString()),
+  }))
+
+  res.json(productObj)
 })
 
 // @desc    Delete a product
