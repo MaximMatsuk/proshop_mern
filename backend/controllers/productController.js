@@ -201,8 +201,24 @@ const createProductReview = asyncHandler(async (req, res) => {
 // @route   GET /api/products/top
 // @access  Public
 const getTopProducts = asyncHandler(async (req, res) => {
+  if (await isFeatureEnabled('product_recommendations')) {
+    const products = await Product.aggregate([
+      {
+        $addFields: {
+          score: {
+            $multiply: [
+              '$rating',
+              { $sqrt: { $add: ['$numReviews', 1] } },
+            ],
+          },
+        },
+      },
+      { $sort: { score: -1 } },
+      { $limit: 5 },
+    ])
+    return res.json(products)
+  }
   const products = await Product.find({}).sort({ rating: -1 }).limit(3)
-
   res.json(products)
 })
 
