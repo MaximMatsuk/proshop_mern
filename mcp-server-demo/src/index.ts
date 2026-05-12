@@ -347,6 +347,62 @@ server.tool(
 );
 
 // ---------------------------------------------------------------------------
+// Tool 4: list_features
+// ---------------------------------------------------------------------------
+
+const listFeaturesSchema = z.object({});
+
+server.tool(
+  "list_features",
+  [
+    "Возвращает текущее состояние ВСЕХ фиче-флагов в features.json: для каждой фичи —",
+    "status, traffic_percentage, last_modified и состояние её зависимостей (depends_on с status).",
+    "Формат записи каждой фичи такой же, как у get_feature_info, но сразу массивом для всех.",
+    "",
+    "Когда вызывать: пользователь просит список всех фич, дашборд, обзор состояний;",
+    "когда нужно отфильтровать фичи на клиенте по status / traffic_percentage / last_modified.",
+    "Когда НЕ вызывать: если известен конкретный feature_name — используйте get_feature_info",
+    "(дешевле); для изменений — set_feature_state / adjust_traffic_rollout.",
+    "",
+    "Read-only — файл features.json не модифицируется.",
+    "",
+    "Формат входа: {} (без параметров).",
+    "Формат выхода (success): { count: number, features: [{ feature_name, status,",
+    "  traffic_percentage, last_modified, dependencies: [{ feature_name, status }] }] }.",
+    "Формат ошибки: { error: 'FILE_READ_ERROR' | 'JSON_PARSE_ERROR', message: string }.",
+    "",
+    "Примеры:",
+    "1) list_features({})",
+    "   → { count: 12, features: [{ feature_name: 'dark_mode', status: 'Testing', ... }, ...] }",
+  ].join("\n"),
+  listFeaturesSchema.shape,
+  async () => {
+    let features: FeaturesFile;
+    try {
+      features = await readFeatures();
+    } catch (err) {
+      return asJsonContent({
+        error: err instanceof SyntaxError ? "JSON_PARSE_ERROR" : "FILE_READ_ERROR",
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    const list = Object.entries(features).map(([feature_name, feature]) => ({
+      feature_name,
+      status: feature.status,
+      traffic_percentage: feature.traffic_percentage,
+      last_modified: feature.last_modified,
+      dependencies: dependencyStates(features, feature.dependencies),
+    }));
+
+    return asJsonContent({
+      count: list.length,
+      features: list,
+    });
+  },
+);
+
+// ---------------------------------------------------------------------------
 // Connect transport last (after all tools are registered).
 // ---------------------------------------------------------------------------
 

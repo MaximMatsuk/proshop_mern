@@ -107,11 +107,25 @@ jane@example.com  / 123456 (Customer)
 В проекте подключён MCP-сервер `feature-flags` (см. `.mcp.json`), который работает поверх `config/features.json`. Тулы:
 
 - `get_feature_info(feature_name)` — статус фичи, `traffic_percentage`, `last_modified` и состояние зависимостей.
+- `list_features()` — то же, что `get_feature_info`, но сразу для всех фич: `{ count, features: [...] }`.
 - `set_feature_state(feature_name, state)` — перевод в `Disabled` / `Testing` / `Enabled` с автоматическим пересчётом `traffic_percentage`.
 - `adjust_traffic_rollout(feature_name, percentage)` — точечная подстройка процента трафика без смены статуса.
 
 Правила:
 
 - Когда пользователь спрашивает статус фичи («какой статус у `gift_message`?», «включена ли `search_v2`?») — вызывай `get_feature_info`, **не** читай `config/features.json` напрямую.
+- Когда пользователь просит **список всех фич** — вызывай `list_features`, **не** читай `config/features.json` напрямую.
 - Когда пользователь хочет изменить статус («включи фичу X», «переведи Y в Testing», «поставь трафик 25%») — вызывай соответствующие тулы (`set_feature_state` / `adjust_traffic_rollout`). **Никогда** не редактируй `config/features.json` вручную через `Edit`/`Write`.
-- Когда пользователь просит **список всех фич** — отдельного `list_features` тула в текущем сервере **нет**. Допустимый fallback — однократный `Read` файла `config/features.json`. При желании этот тул можно добавить в `mcp-server-demo/src/index.ts`.
+
+## API feature flags (`/api/features`)
+
+Public read-only HTTP-эндпоинт поверх `config/features.json` (`backend/routes/featureRoutes.js`, `backend/controllers/featureController.js`):
+
+- `GET /api/features` — список всех фич.
+- `GET /api/features/:name` — одна фича по snake_case ID.
+
+Фронтенд подтягивает их через thunk `loadFeatureFlags` (`frontend/src/actions/featureFlagsActions.js`) на старте `App.js` и кладёт в Redux-стор `featureFlags`. Мутации идут только через MCP-тулы — HTTP write-эндпоинтов нет.
+
+## Админ-страница Feature Flags (`/admin/featurelist`)
+
+`frontend/src/screens/FeatureListScreen.js` — read-only дашборд для админа: таблица всех фич из `featureFlags` стора (статус, traffic %, last_modified, зависимости). Подключена в `App.js` под `/admin/featurelist` и вынесена в админ-меню навбара. Изменения статусов делаются вне UI (через MCP-тулы).

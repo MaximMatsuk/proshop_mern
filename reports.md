@@ -516,3 +516,10 @@ backend/utils/featureFlags.js
 **Проверка end-to-end (на Phase 0):** прямая правка `search_v2.status = "Disabled"` в `config/features.json` → через ≥5s `GET /api/features/search_v2` отдаёт `enabled: false`, и `semantic_search` (зависит от `search_v2`) тоже `enabled: false` каскадом, хотя сама в `Testing`. После восстановления — оба `true`. TTL и каскад работают.
 
 **Прогресс:** 5/20 реализуемых фич (25%). Skip — 4 (`search_v2`, `semantic_search`, `apple_pay`, `stripe_alternative`, по analysis-doc §6 — внешние зависимости). Осталось 4 фазы (Phase 2 — дешёвые backend-изменения; Phase 3 — UX редизайн + якорная `multi_step_checkout_v2`; Phase 4 — новые endpoints; Phase 5 — тяжёлые/опциональные).
+
+---
+
+## Доп. изменения
+
+- **MCP-тул `list_features`** (`mcp-server-demo/src/index.ts`): read-only, без параметров, возвращает `{ count, features: [...] }` — каждая фича в том же формате, что отдаёт `get_feature_info`. Закрывает раннее ограничение «отдельного `list_features` тула нет, делай `Read`».
+- **Админ-страница `/admin/featurelist`** (`frontend/src/screens/FeatureListScreen.js`): read-only дашборд для админа — таблица всех фич (status, traffic %, last_modified, зависимости) поверх стора `featureFlags`. Подключена в `App.js` и в админ-меню навбара. Мутации только через MCP-тулы.
