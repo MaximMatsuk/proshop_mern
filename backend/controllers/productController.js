@@ -181,6 +181,11 @@ const createProductReview = asyncHandler(async (req, res) => {
       user: req.user._id,
     }
 
+    if (await isFeatureEnabled('photo_reviews')) {
+      const photos = Array.isArray(req.body.photos) ? req.body.photos : []
+      review.photos = photos.filter((p) => typeof p === 'string').slice(0, 3)
+    }
+
     product.reviews.push(review)
 
     product.numReviews = product.reviews.length
