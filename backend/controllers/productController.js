@@ -10,14 +10,22 @@ const getProducts = asyncHandler(async (req, res) => {
   const pageSize = 10
   const page = Number(req.query.pageNumber) || 1
 
-  const keyword = req.query.keyword
-    ? {
-        name: {
-          $regex: req.query.keyword,
-          $options: 'i',
-        },
+  let keywordQuery = {}
+  if (req.query.keyword) {
+    if (await isFeatureEnabled('search_v2')) {
+      keywordQuery = {
+        $or: [
+          { name: { $regex: req.query.keyword, $options: 'i' } },
+          { brand: { $regex: req.query.keyword, $options: 'i' } },
+          { description: { $regex: req.query.keyword, $options: 'i' } },
+        ],
       }
-    : {}
+    } else {
+      keywordQuery = {
+        name: { $regex: req.query.keyword, $options: 'i' },
+      }
+    }
+  }
 
   const filters = {}
   if (await isFeatureEnabled('admin_advanced_filters')) {
@@ -36,7 +44,7 @@ const getProducts = asyncHandler(async (req, res) => {
     if (brand) filters.brand = brand
   }
 
-  const query = { ...keyword, ...filters }
+  const query = { ...keywordQuery, ...filters }
   const count = await Product.countDocuments(query)
   const products = await Product.find(query)
     .limit(pageSize)
