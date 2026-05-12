@@ -32,6 +32,12 @@ const addOrderItems = asyncHandler(async (req, res) => {
       totalPrice,
     })
 
+    if (await isFeatureEnabled('gift_message')) {
+      const raw =
+        typeof req.body.giftMessage === 'string' ? req.body.giftMessage : ''
+      order.giftMessage = raw.slice(0, 500)
+    }
+
     const createdOrder = await order.save()
 
     res.status(201).json(createdOrder)
