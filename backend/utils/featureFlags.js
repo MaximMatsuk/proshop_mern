@@ -74,6 +74,8 @@ export const getAllFeatures = async () => {
   const features = await ensureCache()
   return Object.entries(features).map(([name, feature]) => ({
     name,
+    display_name: feature.name,
+    description: feature.description,
     enabled: resolveEnabled(name, features, new Set()),
     status: feature.status,
     traffic_percentage: feature.traffic_percentage,
@@ -90,6 +92,8 @@ export const getFeatureResolved = async (name) => {
   if (!feature) return null
   return {
     name,
+    display_name: feature.name,
+    description: feature.description,
     enabled: resolveEnabled(name, features, new Set()),
     status: feature.status,
     traffic_percentage: feature.traffic_percentage,
