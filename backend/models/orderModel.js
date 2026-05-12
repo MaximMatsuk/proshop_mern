@@ -67,6 +67,10 @@ const orderSchema = mongoose.Schema(
     deliveredAt: {
       type: Date,
     },
+    giftMessage: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,
