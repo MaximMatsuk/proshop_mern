@@ -30,3 +30,6 @@ yarn-error.log*
 
 # Qdrant on-disk state (vector DB binary storage)
 qdrant_storage/
+
+# Superpowers brainstorming mockups (visual companion)
+.superpowers/
