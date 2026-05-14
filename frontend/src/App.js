@@ -34,6 +34,15 @@ const App = () => {
       <Header />
       <Switch>
         <Route path='/admin/featurelist' exact component={FeatureListScreen} />
+        <Route path='/' exact component={HomeScreen} />
+        <Route path='/search/:keyword' exact component={HomeScreen} />
+        <Route path='/page/:pageNumber' exact component={HomeScreen} />
+        <Route
+          path='/search/:keyword/page/:pageNumber'
+          exact
+          component={HomeScreen}
+        />
+        <Route path='/product/:id' component={ProductScreen} />
         <Route
           render={() => (
             <main id='main-content' tabIndex='-1' className='py-3 focus:outline-none'>
@@ -45,7 +54,6 @@ const App = () => {
                 <Route path='/login' component={LoginScreen} />
                 <Route path='/register' component={RegisterScreen} />
                 <Route path='/profile' component={ProfileScreen} />
-                <Route path='/product/:id' component={ProductScreen} />
                 <Route path='/cart/:id?' component={CartScreen} />
                 <Route path='/admin/userlist' component={UserListScreen} />
                 <Route path='/admin/user/:id/edit' component={UserEditScreen} />
@@ -64,14 +72,6 @@ const App = () => {
                   component={ProductEditScreen}
                 />
                 <Route path='/admin/orderlist' component={OrderListScreen} />
-                <Route path='/search/:keyword' component={HomeScreen} exact />
-                <Route path='/page/:pageNumber' component={HomeScreen} exact />
-                <Route
-                  path='/search/:keyword/page/:pageNumber'
-                  component={HomeScreen}
-                  exact
-                />
-                <Route path='/' component={HomeScreen} exact />
               </Container>
             </main>
           )}
