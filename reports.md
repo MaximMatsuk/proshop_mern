@@ -523,3 +523,66 @@ backend/utils/featureFlags.js
 
 - **MCP-тул `list_features`** (`mcp-server-demo/src/index.ts`): read-only, без параметров, возвращает `{ count, features: [...] }` — каждая фича в том же формате, что отдаёт `get_feature_info`. Закрывает раннее ограничение «отдельного `list_features` тула нет, делай `Read`».
 - **Админ-страница `/admin/featurelist`** (`frontend/src/screens/FeatureListScreen.js`): read-only дашборд для админа — таблица всех фич (status, traffic %, last_modified, зависимости) поверх стора `featureFlags`. Подключена в `App.js` и в админ-меню навбара. Мутации только через MCP-тулы.
+
+---
+
+## M4 — Прототипирование. Редизайн публичной воронки
+
+Цель этапа — привести публичные экраны магазина к языку `DESIGN.md` (cream + forest + Cormorant Garamond + DM Sans), снять `react-bootstrap` и Font Awesome из публичной воронки. Эталон — уже редизайненный в M3 `FeatureListScreen.jsx` и компоненты `Header.jsx`, `Button.jsx`, `Badge.jsx`, `Form.jsx`, `Icons.jsx`.
+
+### Какие страницы попали под редизайн
+
+| Экран | Маршруты | Что было | Что стало |
+|---|---|---|---|
+| **HomeScreen** | `/`, `/search/:keyword`, `/page/:n`, `/search/:keyword/page/:n` | `react-bootstrap` `<Row>/<Col>/<Card>` + `<Carousel>` (Bootstrap) + Font Awesome звёзды через `Rating.js` + `<h1>Latest Products</h1>` | Editorial hero (Cormorant H1 «Considered things, well kept.» + photo 4:5 с glass caption-strip) → top-rated rail (scroll-snap) → 4-колоночный grid latest → пагинация-пилюли → recently viewed. На search/page>1 hero скрывается, остаются breadcrumb + Cormorant H1 «Results for …» / «All products» + lede со счётчиком и «Clear search». |
+| **ProductScreen** | `/product/:id` | `<Row>` с `<Image fluid>` (col-6) + `<ListGroup>` инфы (col-3) + buy-box `<Card>` (col-3) + Reviews ниже. FA-звёзды. | Editorial 1fr 1fr: sticky-фото слева, справа eyebrow «Category · Brand» + Cormorant H1 + lede + meta-row (Stars + reviews link + In stock pill + Brand) + buy-box на `bone-50` surface (Price tnum / Status badge / Quantity-pill / Add to cart `primary lg`). Reviews — 1fr 1fr под продуктом: список с Stars (clay-500) + Verified-purchase badge (флаг), форма «Share your view» c keyboard-accessible StarPicker. |
+
+### Чего НЕ касались (остался Bootstrap)
+
+CartScreen, Login/RegisterScreen, ProfileScreen, ShippingScreen/PaymentScreen/PlaceOrderScreen, OrderScreen, все `/admin/*` экраны кроме `FeatureListScreen` (он уже на новом языке после M3).
+
+### Новые / переписанные компоненты
+
+| Файл | Действие | Что это |
+|---|---|---|
+| `frontend/src/components/Breadcrumb.jsx` | NEW | `<nav aria-label='Breadcrumb'><ol>` с `aria-current='page'` на последнем узле |
+| `frontend/src/components/ProductCard.jsx` | NEW | Единая голая editorial-карточка, sizes `md`/`sm`, флаг `image_lazy_loading`, out-of-stock через `<Badge tone='critical' dot>` + dim фото |
+| `frontend/src/components/Hero.jsx` | NEW | 1fr 1fr секция, фото-тайл 4:5 с glass caption-strip (единственное место в системе, где DESIGN.md §6 разрешает glass) |
+| `frontend/src/components/ProductRail.jsx` | NEW | Горизонтальный scroll-snap rail; заменяет `react-bootstrap Carousel` для top-rated и recently-viewed |
+| `frontend/src/components/Paginate.jsx` | REWRITE (`.js` → `.jsx`) | Пилюли 36×36, `<Link>` вместо `LinkContainer`, `IconChevronRight` + `rotate-180` для стрелки prev. Тот же интерфейс пропсов — `ProductListScreen.js` (админский) продолжает работать |
+| `frontend/src/components/RecentlyViewed.jsx` | REWRITE (`.js` → `.jsx`) | Тонкая обёртка над `ProductRail`, тот же `useRecentlyViewed` хук + `useFeatureFlag('recently_viewed')` |
+| `frontend/src/components/Stars.jsx` | NEW | Lucide-style звёзды (clay-500), sizes `sm`/`md`/`lg`. Заменяет `Rating.js` (Font Awesome) |
+| `frontend/src/components/Icons.jsx` | MODIFY | Добавлены `IconStar` (с `filled` пропом) и `IconStarHalf` (clipPath) |
+| `frontend/src/components/Form.jsx` | MODIFY | Добавлены `TextArea` и `Select` по контракту существующего `TextInput` (`label` + `hideLabel` + auto-id, `t-eyebrow` label, `bg-bone-50 border-line rounded-pill`/`rounded-lg`, focus → `border-forest-700`) |
+| `frontend/src/screens/HomeScreen.jsx` | NEW (заменяет `HomeScreen.js`) | Собирает hero + rail + grid + paginate + recently viewed + сам рендерит `<main id='main-content'>` |
+| `frontend/src/screens/ProductScreen.jsx` | NEW (заменяет `ProductScreen.js`) | Inline `BuyBox`/`Reviews`/`ReviewItem`/`ReviewForm`/`StarPicker`/`DetailSkeleton`/`DetailErrorState` (паттерн `Stat`/`Tab`/`FlagCard` из `FeatureListScreen.jsx`) |
+| `frontend/src/App.js` | MODIFY | 5 маршрутов (4 home + product) вытащены из-под `react-bootstrap Container` на верхний уровень `<Switch>` — как `/admin/featurelist`. Container теперь обслуживает только cart/profile/order/admin |
+
+### Удалено
+
+`screens/HomeScreen.js`, `screens/ProductScreen.js`, `components/Product.js`, `components/ProductCarousel.js`, `components/Paginate.js`, `components/RecentlyViewed.js`, `components/Rating.js`. Font Awesome из этих экранов уходит полностью (но `index.html` по-прежнему линкует FA CDN — остальные Bootstrap-экраны могут его ещё использовать).
+
+### Дисциплина
+
+- **Все отступы — из шкалы DESIGN.md §5** (`4/8/12/16/24/32/48/64/96`). Аудит v2 мокапа нашёл 14 мест с off-scale значениями (`14/28/40/56/6`) — все исправлены до коммита.
+- **WCAG 2.1/2.2 AA** — все правила §9: один `<h1>` на экран, `<ul role='list'>`, breadcrumb через `<nav><ol>`, навигация через `<Link>`, иконки `aria-hidden`, focus-visible outline forest-500, disabled через disabled-палитру (не `opacity-50`), `role='status'`/`role='alert'`, touch target ≥ 24×24.
+- **Никаких новых тестов** (CLAUDE.md). Проверка — визуальный чекпойнт пользователя после P1 и после P2.
+- **Feature flags не задеты функционально** — `image_lazy_loading`, `recently_viewed`, `verified_purchase_badge` продолжают работать через те же `useFeatureFlag` хуки.
+
+### Артефакты
+
+- Спека дизайна: `docs/superpowers/specs/2026-05-14-storefront-redesign-design.md`
+- Implementation plan: `docs/superpowers/plans/2026-05-14-storefront-redesign.md`
+- Workflow: 12 коммитов на `master` (от `c5075ae` до `45bbf1a`), визуальные чекпойнты между P1 (`dad5b28`) и P2 (`45bbf1a`).
+
+### Что осталось вне M4
+
+- CartScreen и checkout-флоу (Shipping/Payment/PlaceOrder/Order) — следующий логичный кусок воронки.
+- Login/Register/Profile — auth-стек.
+- Admin lists (users/orders/products) кроме уже редизайненной FeatureListScreen.
+- Footer (на главной он остаётся Bootstrap-овским).
+- Категории/фильтры/brand-фильтры — backend не группирует продукты, добавление вне scope.
+
+----
+
+страницу админа с фичами + design.md делал через claude design. После этого прогнал через агента по accessability. Затем через агента ux-designer сказал доработать главную и карточку продукта
