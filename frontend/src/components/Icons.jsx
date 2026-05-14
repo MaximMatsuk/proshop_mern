@@ -171,3 +171,52 @@ export const IconLogo = (p) => (
     <circle cx='12' cy='12' r='1.6' fill='currentColor' />
   </svg>
 )
+
+export const IconStar = ({ filled = false, ...p }) => (
+  <svg
+    width='14'
+    height='14'
+    viewBox='0 0 24 24'
+    fill={filled ? 'currentColor' : 'none'}
+    stroke='currentColor'
+    strokeWidth='1.4'
+    strokeLinejoin='round'
+    aria-hidden='true'
+    focusable='false'
+    {...p}
+  >
+    <path d='M12 2.5l2.9 6.2 6.8.8-5 4.7 1.4 6.8L12 17.7 5.9 21l1.4-6.8-5-4.7 6.8-.8z' />
+  </svg>
+)
+
+export const IconStarHalf = (p) => (
+  <svg
+    width='14'
+    height='14'
+    viewBox='0 0 24 24'
+    aria-hidden='true'
+    focusable='false'
+    {...p}
+  >
+    <defs>
+      <clipPath id='star-half-clip'>
+        <rect x='0' y='0' width='12' height='24' />
+      </clipPath>
+    </defs>
+    <path
+      d='M12 2.5l2.9 6.2 6.8.8-5 4.7 1.4 6.8L12 17.7 5.9 21l1.4-6.8-5-4.7 6.8-.8z'
+      fill='currentColor'
+      stroke='currentColor'
+      strokeWidth='1.4'
+      strokeLinejoin='round'
+      clipPath='url(#star-half-clip)'
+    />
+    <path
+      d='M12 2.5l2.9 6.2 6.8.8-5 4.7 1.4 6.8L12 17.7 5.9 21l1.4-6.8-5-4.7 6.8-.8z'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='1.4'
+      strokeLinejoin='round'
+    />
+  </svg>
+)
