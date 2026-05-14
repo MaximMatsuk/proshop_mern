@@ -129,3 +129,6 @@ Public read-only HTTP-эндпоинт поверх `config/features.json` (`bac
 ## Админ-страница Feature Flags (`/admin/featurelist`)
 
 `frontend/src/screens/FeatureListScreen.js` — read-only дашборд для админа: таблица всех фич из `featureFlags` стора (статус, traffic %, last_modified, зависимости). Подключена в `App.js` под `/admin/featurelist` и вынесена в админ-меню навбара. Изменения статусов делаются вне UI (через MCP-тулы).
+
+## Design rules:
+see ./DESIGN.md

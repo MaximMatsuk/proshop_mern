@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bone-50: #FBF8F2;
+    --bone-100: #F6F1E7;
+    --bone-200: #EDE5D4;
+    --bone-300: #DCD0B8;
+    --forest-100: #DCE7E0;
+    --forest-300: #A9C2B5;
+    --forest-500: #5A8A77;
+    --forest-600: #2E6B55;
+    --forest-700: #1F5240;
+    --forest-800: #143A2C;
+    --forest-900: #0E2A21;
+    --clay-500: #C97B5B;
+    --clay-700: #B5613D;
+    --ink: #1A1F1B;
+    --ink-soft: #4A524C;
+    --ink-mute: #7B847E;
+    --ink-faint: #B0B6AF;
+    --line: #D9CFC2;
+    --line-soft: #E7DECC;
+  }
+}
+
+@layer components {
+  .t-eyebrow {
+    @apply text-[11px] font-medium uppercase tracking-wider text-ink-mute;
+  }
+
+  .t-display {
+    @apply font-display font-medium text-5xl tracking-tight text-forest-800;
+  }
+}

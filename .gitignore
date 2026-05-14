@@ -12,6 +12,9 @@ node_modules/
 # production
 /frontend/build
 
+# generated Tailwind output (rebuilt via npm run tailwind:build)
+/frontend/src/tailwind.generated.css
+
 # misc
 .DS_Store
 .env
