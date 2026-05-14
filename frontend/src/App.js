@@ -36,7 +36,7 @@ const App = () => {
         <Route path='/admin/featurelist' exact component={FeatureListScreen} />
         <Route
           render={() => (
-            <main className='py-3'>
+            <main id='main-content' tabIndex='-1' className='py-3 focus:outline-none'>
               <Container>
                 <Route path='/order/:id' component={OrderScreen} />
                 <Route path='/shipping' component={ShippingScreen} />

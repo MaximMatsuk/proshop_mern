@@ -20,7 +20,7 @@ export function Badge({ tone = 'neutral', dot = false, children, className }) {
         className,
       )}
     >
-      {dot && <span className='h-1.5 w-1.5 rounded-full bg-current' />}
+      {dot && <span aria-hidden='true' className='h-1.5 w-1.5 rounded-full bg-current' />}
       {children}
     </span>
   )
@@ -30,7 +30,7 @@ export function CodeChip({ tone = 'default', children, className }) {
   return (
     <span
       className={cn(
-        'inline-block font-mono text-[11.5px] tracking-tight px-[7px] py-[3px] rounded-sm',
+        'inline-block font-mono text-xs tracking-tight px-[7px] py-[3px] rounded-sm',
         tone === 'dep' ? 'bg-forest-100 text-forest-800' : 'bg-bone-200 text-ink-soft',
         className,
       )}

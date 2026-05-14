@@ -31,7 +31,7 @@ export function Button({
         'font-medium tracking-[0.005em]',
         'transition-colors duration-fast ease-out',
         'active:translate-y-px focus-visible:outline-2 focus-visible:outline-forest-500 focus-visible:outline-offset-2',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'disabled:cursor-not-allowed disabled:bg-bone-200 disabled:text-ink-soft disabled:border-line-soft disabled:hover:bg-bone-200',
         VARIANTS[variant],
         SIZES[size],
         className,

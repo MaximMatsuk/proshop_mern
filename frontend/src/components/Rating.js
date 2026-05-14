@@ -1,69 +1,27 @@
 import React from 'react'
 
 const Rating = ({ value, text, color }) => {
+  const numeric = typeof value === 'number' ? value : parseFloat(value) || 0
+  const rounded = Math.round(numeric * 10) / 10
+  const ariaLabel = text
+    ? `Rated ${rounded} out of 5 stars, ${text}`
+    : `Rated ${rounded} out of 5 stars`
+
+  const starClass = (threshold) =>
+    numeric >= threshold
+      ? 'fas fa-star'
+      : numeric >= threshold - 0.5
+      ? 'fas fa-star-half-alt'
+      : 'far fa-star'
+
   return (
-    <div className='rating'>
-      <span>
-        <i
-          style={{ color }}
-          className={
-            value >= 1
-              ? 'fas fa-star'
-              : value >= 0.5
-              ? 'fas fa-star-half-alt'
-              : 'far fa-star'
-          }
-        ></i>
-      </span>
-      <span>
-        <i
-          style={{ color }}
-          className={
-            value >= 2
-              ? 'fas fa-star'
-              : value >= 1.5
-              ? 'fas fa-star-half-alt'
-              : 'far fa-star'
-          }
-        ></i>
-      </span>
-      <span>
-        <i
-          style={{ color }}
-          className={
-            value >= 3
-              ? 'fas fa-star'
-              : value >= 2.5
-              ? 'fas fa-star-half-alt'
-              : 'far fa-star'
-          }
-        ></i>
-      </span>
-      <span>
-        <i
-          style={{ color }}
-          className={
-            value >= 4
-              ? 'fas fa-star'
-              : value >= 3.5
-              ? 'fas fa-star-half-alt'
-              : 'far fa-star'
-          }
-        ></i>
-      </span>
-      <span>
-        <i
-          style={{ color }}
-          className={
-            value >= 5
-              ? 'fas fa-star'
-              : value >= 4.5
-              ? 'fas fa-star-half-alt'
-              : 'far fa-star'
-          }
-        ></i>
-      </span>
-      <span>{text && text}</span>
+    <div className='rating' role='img' aria-label={ariaLabel}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <span key={n} aria-hidden='true'>
+          <i style={{ color }} className={starClass(n)}></i>
+        </span>
+      ))}
+      {text && <span aria-hidden='true'>{text}</span>}
     </div>
   )
 }

@@ -130,5 +130,19 @@ Public read-only HTTP-эндпоинт поверх `config/features.json` (`bac
 
 `frontend/src/screens/FeatureListScreen.js` — read-only дашборд для админа: таблица всех фич из `featureFlags` стора (статус, traffic %, last_modified, зависимости). Подключена в `App.js` под `/admin/featurelist` и вынесена в админ-меню навбара. Изменения статусов делаются вне UI (через MCP-тулы).
 
-## Design rules:
-see ./DESIGN.md
+## Design rules
+See `./DESIGN.md`. When creating or modifying any frontend screen / component, you **MUST** first read **DESIGN.md §9 (Accessibility)** and apply its rules — they are non-negotiable (WCAG 2.1/2.2 AA target). The reference implementation is `frontend/src/screens/FeatureListScreen.jsx` + `frontend/src/components/{Header,Form,Button,Icons,Badge,Rating,Paginate,Message}.{js,jsx}`; copy patterns from there before inventing your own.
+
+Top a11y rules to keep in muscle memory (full list in §9):
+
+- Navigation that changes URL → `<Link>` from `react-router-dom`, never `<button onClick={history.push}>`.
+- No `<div role='button'>` wrapping nested interactive elements — split into sibling buttons.
+- Every `<TextInput>` needs `label` (use `hideLabel` for sr-only); `placeholder` is not a label.
+- Every `<Toggle>` needs `aria-label` if no visible `label`.
+- Disclosure menus / dropdowns: `aria-haspopup`, `aria-expanded`, `aria-controls`, Escape closes + returns focus to trigger.
+- All icons from `components/Icons.jsx` are `aria-hidden` by default; control names live on the parent.
+- Minimum font size 12 px (`text-xs`); minimum touch target 24×24 px; visible `focus-visible:outline-2 focus-visible:outline-forest-500`.
+- Live regions: `<Message variant='danger'>` → `role='alert'`; `success/info` → `role='status'`. Use `role='status' aria-live='polite'` for counters that change.
+- `disabled` buttons use the explicit disabled palette, never `opacity-50`.
+
+Touching `tailwind.input.css`? Run `cd frontend && npm run tailwind:build` (or rely on dev `tailwind:watch`).

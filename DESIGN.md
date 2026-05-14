@@ -135,14 +135,15 @@ Loaded from Google Fonts (OFL — production-safe). The trio is the brand pair; 
 | `text-md` | 17 | Body-lg (hero lede) |
 | `text-base` | 15 | **Body default** |
 | `text-sm` | 13 | Small / secondary |
-| `text-xs` | 12 | Meta |
-| — | 11 | Eyebrow / table-header label |
+| `text-xs` | 12 | Meta, eyebrow, code chip, table-header label (minimum legible size) |
 
 **Treatments.**
 
 - Serif (Cormorant) for **structural headings** (H1–H3), product names, hero ledes, pull-quotes. H4 and below are **sans (DM Sans)**.
 - Tracking is **tight on display** (`-0.02em`) and **wide on eyebrows / labels** (`+0.14em`). This contrast is the system's signature.
-- Eyebrow = `text-xs font-medium uppercase tracking-[0.14em] text-ink-mute`. Place it 6 px above an H1 with `forest-700` colour for editorial emphasis.
+- Eyebrow = `text-xs font-medium uppercase tracking-[0.14em] text-ink-mute` (utility class `.t-eyebrow`). Place it 6 px above an H1 with `forest-700` colour for editorial emphasis.
+
+**Minimum font size: 12 px (`text-xs`).** Anything smaller (10.5 px, 11 px, 11.5 px tokens) is banned — even for "eyebrow" stress. Use letter-spacing for typographic emphasis instead of shrinking.
 
 **Numerics.** Always `font-feature-settings: 'tnum'` on numeric columns and prices.
 
@@ -234,7 +235,7 @@ Sizes: `sm` 32 px / `md` 40 px / `lg` 48 px. Padding scales 14 / 18 / 26.
 `px-2.5 py-0.5 rounded-full text-xs font-medium leading-none`. 6-px coloured dot before the text. Six tones: neutral, positive, caution, critical, info, brand.
 
 ### Code chip
-`font-mono text-[11.5px] px-1.5 py-[3px] rounded-sm bg-bone-200 text-ink-soft`. Variant `--dep` swaps to `bg-forest-100 text-forest-800`.
+`font-mono text-xs px-1.5 py-[3px] rounded-sm bg-bone-200 text-ink-soft`. Variant `--dep` swaps to `bg-forest-100 text-forest-800`.
 
 ### Segment tag
 Hairline pill: `border border-line rounded-full px-2 py-[3px] text-xs text-ink-soft`. Always transparent background.
@@ -279,21 +280,124 @@ Inventory: `search`, `cart`, `user`, `refresh`, `check`, `x`, `chevron`, `dots`,
 
 ---
 
-## 9 · Implementation
+## 9 · Accessibility
 
-This system is published two ways:
+**Target: WCAG 2.1 AA + 2.2 AA.** Every new screen and component must meet the rules below. Treat this section as mandatory, not aspirational.
 
-1. **HTML + vanilla CSS** (the live one in this repo) — `colors_and_type.css` + `ui_kits/proshop/proshop.css`.
-2. **React + Tailwind** — see `migration/` for a drop-in port: a `tailwind.config.js` that maps every token, a `globals.css` with the CSS-variable layer + font import, and converted components.
+### 9.1 · Semantic HTML first, ARIA second
 
-Use whichever fits your codebase. Both produce identical output.
+Use the native element for the job before reaching for `role=`/`aria-`. The decision tree:
 
-For the existing CRA-based `proshop_mern` repo, the Tailwind port (`migration/`) is the path of least resistance — see `migration/README.md` for a step-by-step.
+- Navigation that changes URL → `<a>` / `<Link>` (react-router-dom). **Never** a `<button>` that calls `history.push`. Right-click, `Cmd+click`, "open in new tab" must work.
+- Action that mutates state → `<button type='button'>`. Inside `<form>` → `<button type='submit'>`.
+- Group of selectable items → `<ul role='list'><li>` (the list role survives Bootstrap reset).
+- Section with a heading → `<section aria-labelledby='…-heading'>`.
+- Time stamp → `<time dateTime='YYYY-MM-DD'>`.
+- Progress → `<progress>` or `role='progressbar'` with `aria-valuenow/min/max`.
+
+ARIA is for the residual cases where no element fits. Wrong ARIA is worse than no ARIA.
+
+### 9.2 · Required structure per screen
+
+Every top-level screen must include:
+
+```jsx
+<main id='main-content' tabIndex='-1' className='focus:outline-none'>
+  <nav aria-label='Breadcrumb'>
+    <ol>…<li aria-current='page'>{leaf}</li></ol>
+  </nav>
+  <h1>{screen title}</h1>
+  <section aria-labelledby='…-heading'>
+    <h2 id='…-heading' className='sr-only'>{section name}</h2>
+    …
+  </section>
+</main>
+```
+
+- Exactly **one `<h1>`** per screen.
+- Heading levels do not skip (`h1 → h2 → h3`). Use `sr-only` h2/h3 to label sections that have no visible heading.
+- Skip-link target (`<main id='main-content' tabIndex='-1'>`) is present on every screen. The `<a href='#main-content'>Skip to main content</a>` lives in `Header.jsx` — don't duplicate it.
+- Breadcrumb is `<nav aria-label='Breadcrumb'><ol>` (not `<div>` + spans). Last crumb gets `aria-current='page'`.
+
+### 9.3 · Interactive controls
+
+| Rule | Why |
+|---|---|
+| Every button/link has an **accessible name** — visible text **or** `aria-label`. Never both with conflicting content. | WCAG 4.1.2 |
+| Icon-only control → `<Button aria-label='…'>` (icon is `aria-hidden`). | WCAG 4.1.2 |
+| Toggle button (filter, pin, etc.) → `aria-pressed={active}`. | WCAG 4.1.2 |
+| Switch → `<Toggle aria-label={…}>` with `role='switch'` (already set by component). | WCAG 4.1.2 |
+| Disclosure / dropdown trigger → `aria-haspopup`, `aria-expanded`, `aria-controls={panelId}`. Panel has `id={panelId}`. `Escape` closes the panel and returns focus to the trigger. | WAI-ARIA APG |
+| Expand/collapse row → trigger has `aria-expanded` + `aria-controls`; expanded panel has `id`, `role='region'`, `aria-labelledby={titleId}`. | WCAG 1.3.1 |
+| Active nav link → `aria-current='page'`. | WCAG 2.4.8 |
+| No `<div role='button'>` wrapping other interactive elements. **Buttons cannot nest buttons / inputs / links.** Split the affordance into siblings instead. | ARIA spec |
+| Minimum **touch target 24 × 24 px** (WCAG 2.2 AA, criterion 2.5.8). Pad the hit area on the element itself, not via `margin`. | WCAG 2.5.8 |
+| **Visible focus** on every interactive element: `focus-visible:outline-2 focus-visible:outline-forest-500 focus-visible:outline-offset-2`. Don't strip the outline without a replacement. | WCAG 2.4.7 |
+| `disabled` attribute styles via `disabled:bg-bone-200 disabled:text-ink-soft disabled:border-line-soft`. **Never** `disabled:opacity-50` — it tanks contrast. | WCAG 1.4.11 |
+
+### 9.4 · Forms
+
+- Every input has a **label**. Either the `<TextInput label='…' hideLabel?>` component (which generates `<label for>`), or a `<label htmlFor={id}>` wrapper. `placeholder` is **not** a label.
+- Required indicator: visible asterisk **plus** `aria-label='required'` on the asterisk OR `aria-required='true'` on the input.
+- Error messages: render inside a `<div role='alert'>` next to the input; reference via `aria-describedby={errorId}`; set `aria-invalid='true'` on the input.
+- Validation hints: `aria-describedby={hintId}`.
+- Submit button must be reachable via Tab and submit on `Enter`.
+
+### 9.5 · Icons
+
+- All SVG icons in `components/Icons.jsx` default to `aria-hidden='true' focusable='false'`. Don't override unless the icon is the **only** carrier of meaning (then add `aria-label` on the icon and `role='img'`).
+- Decorative dots, divider lines, separator dots — `aria-hidden='true'`.
+
+### 9.6 · Live regions & status
+
+| Situation | Markup |
+|---|---|
+| Error message (critical) | `<div role='alert'>…</div>` or `<Message variant='danger'>` (auto-sets `role='alert'`) |
+| Empty state / success / informational update | `<div role='status'>…</div>` or `<Message variant='success'/'info'>` (auto-sets `role='status'`) |
+| Counter / footer that changes on filter / search | `<p role='status' aria-live='polite' aria-atomic='true'>` |
+| Async loading region | `aria-busy={loading}` on the container |
+| Loader spinner | `<Loader />` (already has `role='status'` + `sr-only` text) |
+
+Don't overuse `aria-live='assertive'`. Reserve for actual errors or interruptions.
+
+### 9.7 · Motion
+
+- All transitions use the three durations / two eases declared in §6. No bouncy springs.
+- Global `prefers-reduced-motion: reduce` rule in `tailwind.input.css` collapses everything to `0.01ms`. **Don't override it** in component CSS. If a transition is essential to communicate state, use a non-motion fallback (colour shift, opacity step).
+
+### 9.8 · Colour & contrast
+
+- Body text on `bone-100` / `bone-50` ≥ **4.5 : 1** (`ink`, `ink-soft`). `ink-mute` is for ≥ 18 px text or non-essential meta.
+- UI components (borders, icons, indicators) ≥ **3 : 1**.
+- Status meaning is never colour-only — pair colour with a text label or icon (status pills already do: dot + word).
+- Disabled state is exempt from text-contrast (WCAG 1.4.3 note) but **must still look disabled** — use the disabled palette from §9.3.
+
+### 9.9 · Anti-patterns (forbidden)
+
+- `<div role='button' onClick onKeyDown>` wrapping interactive children.
+- `<button>` that calls `history.push` for navigation (use `<Link>`).
+- `placeholder` as the only label.
+- Custom focus styles that lower the outline contrast below 3 : 1.
+- `disabled:opacity-50` (kills contrast).
+- Font sizes below 12 px (`text-xs`).
+- Touch targets below 24 × 24 px.
+- Removing the `aria-hidden` default from icons "to give the screen reader more context" — fix the parent control's name instead.
+- Toast / modal / dropdown without `Escape` handler.
+- `aria-live='assertive'` for non-critical updates.
+
+### 9.10 · Before-merge checklist
+
+For any PR that touches a screen or component, verify:
+
+- [ ] Keyboard-only walkthrough: Tab through every interactive control. Focus is visible at every step. No keyboard traps. `Escape` closes any opened popover/menu/modal.
+- [ ] Screen-reader pass with VoiceOver (`Cmd+F5` on macOS): every control announces its name, role, and state. No mystery "button", "edit", "image" with empty names.
+- [ ] All form inputs have labels. Errors are announced.
+- [ ] All interactive elements ≥ 24 × 24 px hit area.
+- [ ] No new font sizes below 12 px.
+- [ ] No new icon usages without `aria-hidden` or a meaningful `aria-label`.
+- [ ] No `role='button'` on non-`<button>` elements unless impossible to use a real button.
+- [ ] Run `npm run tailwind:build` if `tailwind.input.css` was touched.
+
+Reference implementation: `screens/FeatureListScreen.jsx` + `components/Header.jsx` + `components/Form.jsx` were rebuilt to these rules — use them as the model when writing a new screen.
 
 ---
-
-## 10 · Open questions for the brand owner
-
-1. **Photography.** Six demo product images came with the repo seed. Real product photography in the same light-cream-background style will tighten the home page meaningfully.
-2. **Clay accent.** Currently used for ratings + "Remove" links only. If you want a stronger warm direction (sale tags everywhere, terracotta CTAs), say so — it's a one-line palette swap.
-3. **Density.** The current admin table runs at `18 × 16` row padding. Some teams prefer denser tables (`10 × 12`). I can ship a `compact` variant if useful.
