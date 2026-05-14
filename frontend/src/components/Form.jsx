@@ -119,3 +119,83 @@ export function IconButton({ children, className, ...rest }) {
     </button>
   )
 }
+
+export function TextArea({
+  className,
+  inputClassName,
+  label,
+  hideLabel = false,
+  id,
+  rows = 4,
+  ...rest
+}) {
+  const inputId = id || (rest.name ? `input-${rest.name}` : undefined)
+  return (
+    <div className={cn('flex flex-col gap-2', className)}>
+      {label && (
+        <label
+          htmlFor={inputId}
+          className={hideLabel ? 'sr-only' : 't-eyebrow'}
+        >
+          {label}
+        </label>
+      )}
+      <textarea
+        id={inputId}
+        rows={rows}
+        className={cn(
+          'w-full px-4 py-3 rounded-lg',
+          'bg-bone-50 border border-line outline-none text-sm text-ink',
+          'placeholder:text-ink-mute resize-y',
+          'transition-colors duration-fast ease-out',
+          'focus:border-forest-700',
+          'focus-visible:outline-2 focus-visible:outline-forest-500 focus-visible:outline-offset-2',
+          inputClassName,
+        )}
+        {...rest}
+      />
+    </div>
+  )
+}
+
+export function Select({
+  className,
+  inputClassName,
+  label,
+  hideLabel = false,
+  id,
+  options = [],
+  ...rest
+}) {
+  const inputId = id || (rest.name ? `input-${rest.name}` : undefined)
+  return (
+    <div className={cn('flex flex-col gap-2', className)}>
+      {label && (
+        <label
+          htmlFor={inputId}
+          className={hideLabel ? 'sr-only' : 't-eyebrow'}
+        >
+          {label}
+        </label>
+      )}
+      <select
+        id={inputId}
+        className={cn(
+          'h-input px-4 rounded-pill',
+          'bg-bone-50 border border-line text-sm text-ink outline-none',
+          'transition-colors duration-fast ease-out',
+          'focus:border-forest-700',
+          'focus-visible:outline-2 focus-visible:outline-forest-500 focus-visible:outline-offset-2',
+          inputClassName,
+        )}
+        {...rest}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
